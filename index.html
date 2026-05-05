@@ -17,8 +17,24 @@ body {
 header {
   padding: 20px;
   text-align: center;
-  font-size: 28px;
-  font-weight: 600;
+}
+
+h1 {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* SEARCH */
+.search {
+  margin-top: 15px;
+}
+
+input {
+  padding: 12px;
+  width: 250px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
 }
 
 /* GRID */
@@ -35,89 +51,154 @@ header {
   border-radius: 16px;
   padding: 15px;
   transition: 0.25s;
+  cursor: pointer;
   position: relative;
-  overflow: hidden;
 }
 
 .card:hover {
   transform: translateY(-6px);
 }
 
-/* NAME */
-.name {
-  font-weight: bold;
+/* STAR */
+.star {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
 }
 
-/* PRICE */
-.price {
-  font-size: 18px;
-  margin: 5px 0;
+/* COLORS */
+.up { color: #00ff9d; }
+.down { color: #ff4d4d; }
+
+/* MODAL */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
 }
 
-/* CHANGE */
-.change {
-  font-weight: bold;
+.modal-content {
+  background: #111827;
+  padding: 25px;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 90%;
 }
 
-/* BAR */
-.bar {
-  height: 6px;
-  border-radius: 10px;
-  margin-top: 10px;
-}
-
-/* POSITIVE */
-.up {
-  color: #00ff9d;
-}
-
-/* NEGATIVE */
-.down {
-  color: #ff4d4d;
+.close {
+  cursor: pointer;
+  float: right;
 }
 </style>
 </head>
 
 <body>
 
-<header>Crypto Dashboard</header>
+<header>
+  <h1>Crypto Dashboard</h1>
+  <div class="search">
+    <input id="search" placeholder="Search crypto...">
+  </div>
+</header>
 
 <div class="grid" id="grid"></div>
 
+<div class="modal" id="modal">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
 <script>
+
+let coins = [];
+let favorites = JSON.parse(localStorage.getItem("fav")) || [];
 
 async function loadCrypto(){
 
   const res = await fetch(
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1"
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1"
   );
 
-  const data = await res.json();
-  const grid = document.getElementById("grid");
+  coins = await res.json();
+  render(coins);
+}
 
+function render(data){
+
+  const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  data.forEach(coin => {
+  data.forEach(c => {
 
-    const change = coin.price_change_percentage_24h;
+    const change = c.price_change_percentage_24h;
+    const fav = favorites.includes(c.id);
 
     const card = document.createElement("div");
     card.className = "card";
 
-    const color = change >= 0 ? "#00ff9d" : "#ff4d4d";
-
     card.innerHTML = `
-      <div class="name">${coin.symbol.toUpperCase()}</div>
-      <div class="price">$${coin.current_price}</div>
-      <div class="change ${change >= 0 ? "up" : "down"}">
-        ${change.toFixed(2)}%
-      </div>
-      <div class="bar" style="background:${color}; width:${Math.min(Math.abs(change)*5,100)}%"></div>
+      <div class="star">${fav ? "⭐" : "☆"}</div>
+      <div><strong>${c.symbol.toUpperCase()}</strong></div>
+      <div>$${c.current_price}</div>
+      <div class="${change>=0?'up':'down'}">${change.toFixed(2)}%</div>
     `;
+
+    /* открыть модалку */
+    card.onclick = () => openModal(c);
+
+    /* избранное */
+    card.querySelector(".star").onclick = (e) => {
+      e.stopPropagation();
+
+      if(fav){
+        favorites = favorites.filter(id => id !== c.id);
+      } else {
+        favorites.push(c.id);
+      }
+
+      localStorage.setItem("fav", JSON.stringify(favorites));
+      render(data);
+    };
 
     grid.appendChild(card);
   });
 }
+
+function openModal(c){
+
+  const modal = document.getElementById("modal");
+  const content = document.getElementById("modalContent");
+
+  content.innerHTML = `
+    <span class="close" onclick="closeModal()">✖</span>
+    <h2>${c.name}</h2>
+    <p>Price: $${c.current_price}</p>
+    <p>Market Cap: $${c.market_cap}</p>
+    <p>24h Change: ${c.price_change_percentage_24h.toFixed(2)}%</p>
+  `;
+
+  modal.style.display = "flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display = "none";
+}
+
+/* SEARCH */
+document.getElementById("search").addEventListener("input", e => {
+  const value = e.target.value.toLowerCase();
+  const filtered = coins.filter(c =>
+    c.name.toLowerCase().includes(value) ||
+    c.symbol.toLowerCase().includes(value)
+  );
+  render(filtered);
+});
 
 loadCrypto();
 setInterval(loadCrypto, 60000);
