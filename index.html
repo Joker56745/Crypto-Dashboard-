@@ -3,284 +3,228 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crypto Trading App</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Crypto Courses</title>
 <style>
-    body {
-      margin: 0;
-      background: #0b0f1a;
-      color: white;
-      font-family: system-ui, sans-serif;
-    }
-    header { 
-      padding: 25px; 
-      text-align: center; 
-      background: #111827;
-    }
-    input {
-      padding: 12px 16px;
-      width: 280px;
-      border-radius: 12px;
-      border: none;
-      background: #1f2937;
-      color: white;
-    }
+  body {
+    margin: 0;
+    background: #0b0f1a;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+  }
 
-    .filters {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px;
-      flex-wrap: wrap;
-    }
-    .btn {
-      padding: 8px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #1f2937;
-    }
-    .btn.active {
-      background: #00ff9d;
-      color: black;
-      font-weight: bold;
-    }
+  header {
+    padding: 25px;
+    text-align: center;
+    background: #111827;
+  }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 16px;
-      padding: 20px;
-    }
-    .card {
-      background: #111827;
-      border-radius: 14px;
-      padding: 14px;
-      cursor: pointer;
-      transition: 0.2s;
-      position: relative;
-    }
-    .card:hover { transform: translateY(-6px); }
+  input {
+    padding: 12px 16px;
+    width: 280px;
+    border-radius: 12px;
+    border: none;
+    background: #1f2937;
+    color: white;
+    margin-top: 10px;
+  }
 
-    .coin { display: flex; align-items: center; gap: 10px; }
-    .coin img { width: 32px; }
-    .star {
-      position: absolute;
-      right: 12px;
-      top: 12px;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .up { color: #00ff9d; }
-    .down { color: #ff4d4d; }
+  .filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px;
+    flex-wrap: wrap;
+  }
 
-    /* Modal */
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.95);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    .modal-box {
-      background: #111827;
-      padding: 25px;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 680px;
-      position: relative;
-    }
-    .close-btn {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      font-size: 36px;
-      cursor: pointer;
-      color: #ccc;
-    }
-    .timeframes {
-      display: flex;
-      gap: 8px;
-      margin: 15px 0;
-    }
-    .loader {
-      text-align: center;
-      padding: 60px 20px;
-      font-size: 18px;
-    }
+  .btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #1f2937;
+    user-select: none;
+  }
+
+  .btn.active {
+    background: #00ff9d;
+    color: black;
+    font-weight: bold;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .card {
+    background: #111827;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .card:hover {
+    transform: translateY(-6px);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: #1f2937;
+    margin-top: 8px;
+  }
+
+  .level {
+    color: #00ff9d;
+    font-weight: bold;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-box {
+    background: #111827;
+    padding: 25px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 700px;
+    position: relative;
+  }
+
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 32px;
+    cursor: pointer;
+    color: #ccc;
+  }
+
+  .lesson {
+    background: #1f2937;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Crypto Trading</h1>
-  <input id="search" placeholder="Search coin...">
+  <h1>Crypto Courses</h1>
+  <input id="search" placeholder="Поиск курса...">
 </header>
 
 <div class="filters">
-  <div class="btn active" onclick="sortBy('top')">Top</div>
-  <div class="btn" onclick="sortBy('gainers')">Gainers</div>
-  <div class="btn" onclick="sortBy('losers')">Losers</div>
-  <div class="btn" onclick="showFavorites()">Favorites ⭐</div>
+  <div class="btn active" onclick="filterLevel('all')">Все</div>
+  <div class="btn" onclick="filterLevel('beginner')">Начинающий</div>
+  <div class="btn" onclick="filterLevel('middle')">Средний</div>
+  <div class="btn" onclick="filterLevel('pro')">Профи</div>
 </div>
 
 <div class="grid" id="grid"></div>
 
-<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-box">
-    <span class="close-btn" onclick="closeModal()">×</span>
-    
-    <h2 id="modalTitle"></h2>
-    <p id="modalPrice" style="font-size: 28px; margin: 8px 0 15px 0;"></p>
-    
-    <div id="modalStats" style="display:grid; grid-template-columns: repeat(2,1fr); gap:12px; margin:15px 0;"></div>
-    
-    <div class="timeframes">
-      <div class="btn active" onclick="changeDays(1)">1D</div>
-      <div class="btn" onclick="changeDays(7)">7D</div>
-      <div class="btn" onclick="changeDays(30)">30D</div>
-    </div>
-    
-    <div id="chartLoader" class="loader">Загрузка графика...</div>
-    <canvas id="chart" height="360"></canvas>
+    <div class="close" onclick="closeModal()">×</div>
+    <h2 id="title"></h2>
+    <p id="desc"></p>
+    <div id="lessons"></div>
   </div>
 </div>
 
 <script>
-let coins = [], filtered = [], favorites = JSON.parse(localStorage.getItem("fav")) || [];
-let chartInstance = null;
-let currentCoin = null;
-let currentDays = 7;
+const courses = [
+  {
+    id: 1,
+    title: "Основы криптовалют",
+    level: "beginner",
+    desc: "Базовый курс о блокчейне и крипте",
+    lessons: ["Что такое блокчейн", "Bitcoin", "Как хранить крипту"]
+  },
+  {
+    id: 2,
+    title: "Трейдинг криптой",
+    level: "middle",
+    desc: "Учимся торговать на бирже",
+    lessons: ["Графики", "Свечи", "Риск-менеджмент"]
+  },
+  {
+    id: 3,
+    title: "DeFi и стейкинг",
+    level: "pro",
+    desc: "Продвинутые финансы в блокчейне",
+    lessons: ["DeFi протоколы", "Yield farming", "Стейкинг"]
+  }
+];
 
-async function loadCrypto() {
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=100");
-    coins = await res.json();
-    filtered = coins;
-    render();
-  } catch(e) { console.error(e); }
-}
+let filtered = courses;
 
 function render() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
   filtered.forEach(c => {
-    const change = c.price_change_percentage_24h || 0;
-    const isFav = favorites.includes(c.id);
-
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="star">${isFav ? "⭐" : "☆"}</div>
-      <div class="coin">
-        <img src="${c.image}">
-        <strong>${c.symbol.toUpperCase()}</strong>
-      </div>
-      <div>$${c.current_price.toLocaleString()}</div>
-      <div class="${change >= 0 ? 'up' : 'down'}">${change.toFixed(2)}%</div>
+      <h3>${c.title}</h3>
+      <div class="tag level">${c.level}</div>
+      <p>${c.desc}</p>
     `;
-    card.onclick = () => openChart(c);
-    card.querySelector(".star").onclick = (e) => { e.stopPropagation(); toggleFav(c.id); };
+    card.onclick = () => openModal(c);
     grid.appendChild(card);
   });
 }
 
-function toggleFav(id) {
-  if (favorites.includes(id)) favorites = favorites.filter(x => x !== id);
-  else favorites.push(id);
-  localStorage.setItem("fav", JSON.stringify(favorites));
-  render();
-}
-
-function showFavorites() {
-  filtered = coins.filter(c => favorites.includes(c.id));
-  render();
-}
-
-function sortBy(type) {
+function filterLevel(level) {
   document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-  if (type === "gainers") filtered = [...coins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
-  else if (type === "losers") filtered = [...coins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
-  else filtered = [...coins];
+  event.target.classList.add('active');
+
+  filtered = level === 'all' ? courses : courses.filter(c => c.level === level);
   render();
 }
 
 document.getElementById("search").addEventListener("input", e => {
   const v = e.target.value.toLowerCase();
-  filtered = coins.filter(c => c.name.toLowerCase().includes(v) || c.symbol.toLowerCase().includes(v));
+  filtered = courses.filter(c => c.title.toLowerCase().includes(v));
   render();
 });
 
-async function openChart(coin) {
-  currentCoin = coin;
+function openModal(course) {
   document.getElementById("modal").style.display = "flex";
-  
-  document.getElementById("modalTitle").textContent = coin.name;
-  document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString()} <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">(${coin.price_change_percentage_24h?.toFixed(2)}%)</span>`;
+  document.getElementById("title").textContent = course.title;
+  document.getElementById("desc").textContent = course.desc;
 
-  document.getElementById("modalStats").innerHTML = `
-    <div><strong>Market Cap</strong><br>$${coin.market_cap?.toLocaleString() || '—'}</div>
-    <div><strong>Volume 24h</strong><br>$${coin.total_volume?.toLocaleString() || '—'}</div>
-  `;
+  const lessons = document.getElementById("lessons");
+  lessons.innerHTML = "";
 
-  await loadChart();
-}
-
-async function loadChart() {
-  document.getElementById("chartLoader").style.display = "block";
-  if (chartInstance) chartInstance.destroy();
-
-  try {
-    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${currentCoin.id}/market_chart?vs_currency=usd&days=${currentDays}`);
-    const data = await res.json();
-
-    const prices = data.prices.map(p => p[1]);
-    const isPositive = prices[prices.length-1] > prices[0];
-
-    chartInstance = new Chart(document.getElementById("chart"), {
-      type: 'line',
-      data: {
-        labels: data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU')),
-        datasets: [{
-          data: prices,
-          borderColor: isPositive ? '#00ff9d' : '#ff4d4d',
-          tension: 0.3,
-          borderWidth: 2.5
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  } catch(e) {
-    console.error(e);
-  } finally {
-    document.getElementById("chartLoader").style.display = "none";
-  }
-}
-
-function changeDays(days) {
-  currentDays = days;
-  document.querySelectorAll('.timeframes .btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  loadChart();
+  course.lessons.forEach(l => {
+    const div = document.createElement("div");
+    div.className = "lesson";
+    div.textContent = l;
+    lessons.appendChild(div);
+  });
 }
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
-  if (chartInstance) chartInstance.destroy();
 }
 
-document.getElementById("modal").addEventListener("click", e => {
-  if (e.target.id === "modal") closeModal();
-});
-
-loadCrypto();
-setInterval(loadCrypto, 90000);
+render();
 </script>
+
 </body>
 </html>
