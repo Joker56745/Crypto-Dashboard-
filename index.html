@@ -6,13 +6,44 @@
 <title>Crypto Trading App</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body { margin: 0; background: #0b0f1a; color: white; font-family: system-ui, sans-serif; }
-    header { padding: 25px; text-align: center; background: #111827; }
-    input { padding: 12px 16px; width: 280px; border-radius: 12px; border: none; background: #1f2937; color: white; }
+    body {
+      margin: 0;
+      background: #0b0f1a;
+      color: white;
+      font-family: system-ui, sans-serif;
+    }
+    header { 
+      padding: 25px; 
+      text-align: center; 
+      background: #111827;
+    }
+    input {
+      padding: 12px 16px;
+      width: 280px;
+      border-radius: 12px;
+      border: none;
+      background: #1f2937;
+      color: white;
+    }
 
-    .filters { display: flex; justify-content: center; gap: 10px; margin: 20px; flex-wrap: wrap; }
-    .btn { padding: 8px 18px; border-radius: 8px; cursor: pointer; background: #1f2937; }
-    .btn.active { background: #00ff9d; color: black; font-weight: bold; }
+    .filters {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #1f2937;
+    }
+    .btn.active {
+      background: #00ff9d;
+      color: black;
+      font-weight: bold;
+    }
 
     .grid {
       display: grid;
@@ -32,10 +63,17 @@
 
     .coin { display: flex; align-items: center; gap: 10px; }
     .coin img { width: 32px; }
-    .star { position: absolute; right: 12px; top: 12px; font-size: 20px; cursor: pointer; }
+    .star {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      font-size: 20px;
+      cursor: pointer;
+    }
     .up { color: #00ff9d; }
     .down { color: #ff4d4d; }
 
+    /* Modal */
     .modal {
       position: fixed;
       top: 0; left: 0;
@@ -46,16 +84,15 @@
       align-items: center;
       z-index: 1000;
       padding: 20px;
+      overflow-y: auto;
     }
     .modal-box {
       background: #111827;
       padding: 25px;
       border-radius: 16px;
       width: 100%;
-      max-width: 720px;
+      max-width: 680px;
       position: relative;
-      max-height: 95vh;
-      overflow-y: auto;
     }
     .close-btn {
       position: absolute;
@@ -65,9 +102,16 @@
       cursor: pointer;
       color: #ccc;
     }
-    .timeframes { display: flex; gap: 8px; margin: 15px 0; }
-    .loader { text-align: center; padding: 80px 20px; font-size: 18px; }
-    #chart { max-height: 420px; }
+    .timeframes {
+      display: flex;
+      gap: 8px;
+      margin: 15px 0;
+    }
+    .loader {
+      text-align: center;
+      padding: 60px 20px;
+      font-size: 18px;
+    }
 </style>
 </head>
 <body>
@@ -86,11 +130,15 @@
 
 <div class="grid" id="grid"></div>
 
+<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-box">
     <span class="close-btn" onclick="closeModal()">×</span>
+    
     <h2 id="modalTitle"></h2>
-    <p id="modalPrice" style="font-size:28px; margin:10px 0 15px;"></p>
+    <p id="modalPrice" style="font-size: 28px; margin: 8px 0 15px 0;"></p>
+    
+    <div id="modalStats" style="display:grid; grid-template-columns: repeat(2,1fr); gap:12px; margin:15px 0;"></div>
     
     <div class="timeframes">
       <div class="btn active" onclick="changeDays(1)">1D</div>
@@ -99,7 +147,7 @@
     </div>
     
     <div id="chartLoader" class="loader">Загрузка графика...</div>
-    <canvas id="chart"></canvas>
+    <canvas id="chart" height="360"></canvas>
   </div>
 </div>
 
@@ -172,13 +220,16 @@ document.getElementById("search").addEventListener("input", e => {
 async function openChart(coin) {
   currentCoin = coin;
   document.getElementById("modal").style.display = "flex";
+  
   document.getElementById("modalTitle").textContent = coin.name;
-  document.getElementById("modalPrice").textContent = `$${coin.current_price.toLocaleString()}`;
+  document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString()} <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">(${coin.price_change_percentage_24h?.toFixed(2)}%)</span>`;
 
-  // Важная задержка + resize
-  setTimeout(() => {
-    loadChart();
-  }, 150);
+  document.getElementById("modalStats").innerHTML = `
+    <div><strong>Market Cap</strong><br>$${coin.market_cap?.toLocaleString() || '—'}</div>
+    <div><strong>Volume 24h</strong><br>$${coin.total_volume?.toLocaleString() || '—'}</div>
+  `;
+
+  await loadChart();
 }
 
 async function loadChart() {
@@ -200,15 +251,10 @@ async function loadChart() {
           data: prices,
           borderColor: isPositive ? '#00ff9d' : '#ff4d4d',
           tension: 0.3,
-          borderWidth: 2.5,
-          pointRadius: 0
+          borderWidth: 2.5
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   } catch(e) {
     console.error(e);
@@ -226,10 +272,7 @@ function changeDays(days) {
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  if (chartInstance) chartInstance.destroy();
 }
 
 document.getElementById("modal").addEventListener("click", e => {
