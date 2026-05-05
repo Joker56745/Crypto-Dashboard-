@@ -17,26 +17,35 @@
     }
     header {
         background: #0f172a;
-        padding: 20px 30px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 15px;
+        padding: 25px 30px;
+        text-align: center;
+        border-bottom: 1px solid #1e2937;
     }
-    .logo { font-size: 28px; font-weight: 800; color: #00ff9d; }
+    .logo {
+        font-size: 32px;
+        font-weight: 800;
+        color: #00ff9d;
+        margin-bottom: 15px;
+    }
+    .search-container {
+        display: flex;
+        justify-content: center;
+    }
     input {
         padding: 14px 20px;
-        width: 340px;
+        width: 100%;
+        max-width: 420px;
         border-radius: 9999px;
         border: none;
         background: #1e2937;
         color: white;
+        font-size: 16px;
     }
     .filters {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        justify-content: center;
         padding: 15px 30px;
         background: #0f172a;
     }
@@ -72,10 +81,9 @@
     .down { color: #ff4d4d; background: rgba(255,77,77,0.1); }
     .star { position: absolute; top: 16px; right: 16px; font-size: 22px; cursor: pointer; z-index: 10; }
 
-    /* MODAL */
+    /* Modal */
     .modal {
-        position: fixed;
-        top: 0; left: 0;
+        position: fixed; top: 0; left: 0;
         width: 100%; height: 100%;
         background: rgba(0,0,0,0.95);
         display: none;
@@ -92,23 +100,15 @@
         border-radius: 24px;
         padding: 30px;
         position: relative;
-        margin: auto;
     }
     .close-btn {
         position: absolute;
-        top: 20px;
-        right: 25px;
+        top: 20px; right: 25px;
         font-size: 42px;
         cursor: pointer;
         color: #888;
-        z-index: 10;
     }
-    .modal-header {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 15px;
-    }
+    .modal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
     .modal-header img { width: 58px; height: 58px; }
     .modal-price { font-size: 38px; font-weight: 700; margin: 10px 0 20px 0; }
     .timeframes {
@@ -141,7 +141,9 @@
 
 <header>
     <div class="logo">CryptoPulse</div>
-    <input id="search" placeholder="Поиск монеты...">
+    <div class="search-container">
+        <input id="search" placeholder="Поиск монеты...">
+    </div>
 </header>
 
 <div class="filters">
@@ -191,14 +193,14 @@ let currentDays = 1;
 const grid = document.getElementById("grid");
 
 async function loadCrypto() {
-    grid.innerHTML = `<div style="text-align:center;padding:80px;color:#888;">Загрузка...</div>`;
+    grid.innerHTML = `<div style="text-align:center;padding:80px;color:#888;">Загрузка данных...</div>`;
     try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&price_change_percentage=24h");
         allCoins = await res.json();
         filteredCoins = [...allCoins];
         renderGrid();
     } catch (e) {
-        grid.innerHTML = `<div style="text-align:center;padding:80px;color:#ff4d4d;">Ошибка загрузки данных.<br>Обновите страницу (F5)</div>`;
+        grid.innerHTML = `<div style="text-align:center;padding:80px;color:#ff4d4d;">Ошибка загрузки.<br>Обновите страницу (F5)</div>`;
     }
 }
 
@@ -220,13 +222,8 @@ function renderGrid() {
             <div class="price">$${coin.current_price.toLocaleString('ru-RU')}</div>
             <div class="change ${change >= 0 ? 'up' : 'down'}">${change.toFixed(2)}%</div>
         `;
-        card.onclick = (e) => {
-            if (!e.target.closest('.star')) openModal(coin);
-        };
-        card.querySelector('.star').onclick = (e) => {
-            e.stopPropagation();
-            toggleFavorite(coin.id);
-        };
+        card.onclick = (e) => { if (!e.target.closest('.star')) openModal(coin); };
+        card.querySelector('.star').onclick = (e) => { e.stopPropagation(); toggleFavorite(coin.id); };
         grid.appendChild(card);
     });
 }
@@ -260,6 +257,8 @@ async function loadChart(coinId, days) {
         const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
         const data = await res.json();
 
+        if (chartInstance) chartInstance.destroy();
+
         chartInstance = new Chart(document.getElementById("chart"), {
             type: 'line',
             data: {
@@ -278,12 +277,29 @@ async function loadChart(coinId, days) {
                 maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
-                    tooltip: { mode: 'index', intersect: false },
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e2937',
+                        titleColor: '#aaa',
+                        bodyColor: '#00ff9d',
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => '$' + ctx.parsed.y.toLocaleString('ru-RU')
+                        }
+                    }
                 },
                 scales: {
-                    y: { grid: { color: '#334155' }, ticks: { color: '#aaa' } },
-                    x: { grid: { color: '#334155' }, ticks: { color: '#aaa', maxTicksLimit: 12 } }
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: {
+                            color: '#aaa',
+                            callback: value => '$' + value.toLocaleString('ru-RU')
+                        }
+                    },
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#aaa', maxTicksLimit: 10 }
+                    }
                 }
             }
         });
@@ -296,10 +312,7 @@ document.getElementById("timeframes").addEventListener("click", e => {
     document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
     currentDays = parseInt(e.target.dataset.days);
-    if (currentCoin) {
-        if (chartInstance) chartInstance.destroy();
-        loadChart(currentCoin.id, currentDays);
-    }
+    if (currentCoin) loadChart(currentCoin.id, currentDays);
 });
 
 function closeModal() {
@@ -307,7 +320,7 @@ function closeModal() {
     if (chartInstance) chartInstance.destroy();
 }
 
-// Фильтры и поиск
+// Фильтры
 document.querySelectorAll('.filters .btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.filters .btn').forEach(b => b.classList.remove('active'));
@@ -336,7 +349,7 @@ document.getElementById("modal").addEventListener("click", e => {
 
 // Запуск
 loadCrypto();
-setInterval(loadCrypto, 300000); // каждые 5 минут
+setInterval(loadCrypto, 300000);
 </script>
 </body>
 </html>
