@@ -222,14 +222,14 @@ async function openChart(coin) {
   document.getElementById("modal").style.display = "flex";
   
   document.getElementById("modalTitle").textContent = coin.name;
-  document.getElementById("modalPrice").innerHTML = `
-    $${coin.current_price.toLocaleString()} 
-    <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">
-      (${coin.price_change_percentage_24h?.toFixed(2)}%)
-    </span>
+  document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString()} <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">(${coin.price_change_percentage_24h?.toFixed(2)}%)</span>`;
+
+  document.getElementById("modalStats").innerHTML = `
+    <div><strong>Market Cap</strong><br>$${coin.market_cap?.toLocaleString() || '—'}</div>
+    <div><strong>Volume 24h</strong><br>$${coin.total_volume?.toLocaleString() || '—'}</div>
   `;
 
-  setTimeout(() => loadChart(), 80); 
+  await loadChart();
 }
 
 async function loadChart() {
@@ -250,24 +250,11 @@ async function loadChart() {
         datasets: [{
           data: prices,
           borderColor: isPositive ? '#00ff9d' : '#ff4d4d',
-          backgroundColor: isPositive ? 'rgba(0,255,157,0.1)' : 'rgba(255,77,77,0.1)',
           tension: 0.3,
-          borderWidth: 2.5,
-          pointRadius: 0
+          borderWidth: 2.5
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: true }  
-        },
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   } catch(e) {
     console.error(e);
@@ -285,10 +272,7 @@ function changeDays(days) {
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  if (chartInstance) chartInstance.destroy();
 }
 
 document.getElementById("modal").addEventListener("click", e => {
