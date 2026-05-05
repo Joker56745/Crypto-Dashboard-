@@ -106,6 +106,7 @@
         padding: 4px 12px;
         border-radius: 9999px;
         font-size: 14px;
+        display: inline-block;
     }
     .up { color: #00ff9d; background: rgba(0,255,157,0.1); }
     .down { color: #ff4d4d; background: rgba(255,77,77,0.1); }
@@ -117,6 +118,8 @@
         cursor: pointer;
         z-index: 10;
     }
+
+    /* Modal */
     .modal {
         position: fixed;
         top: 0; left: 0;
@@ -124,8 +127,10 @@
         background: rgba(0,0,0,0.96);
         display: none;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start;
         z-index: 1000;
+        padding-top: 5vh;
+        overflow-y: auto;
     }
     .modal-box {
         background: #111827;
@@ -134,6 +139,8 @@
         border-radius: 24px;
         padding: 30px;
         position: relative;
+        max-height: 92vh;
+        overflow-y: auto;
     }
     .close-btn {
         position: absolute;
@@ -142,6 +149,12 @@
         font-size: 40px;
         cursor: pointer;
         color: #888;
+    }
+    .chart-container {
+        position: relative;
+        height: 420px;
+        width: 100%;
+        margin-top: 20px;
     }
 </style>
 </head>
@@ -162,38 +175,38 @@
 
 <div class="grid" id="grid"></div>
 
-<!-- Modal -->
+<!-- MODAL -->
 <div class="modal" id="modal">
     <div class="modal-box">
         <span class="close-btn" onclick="closeModal()">×</span>
-        <h2 id="modalTitle"></h2>
-        <p id="modalPrice" style="font-size: 32px; margin: 8px 0;"></p>
         
-        <div id="modalChanges" style="display:flex; gap:15px; margin:20px 0;"></div>
-        
-        <div class="timeframes" style="margin:20px 0;">
-            <div class="btn active" onclick="changeDays(1)">1D</div>
-            <div class="btn" onclick="changeDays(7)">7D</div>
-            <div class="btn" onclick="changeDays(30)">30D</div>
-            <div class="btn" onclick="changeDays(90)">90D</div>
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+            <img id="modalImage" src="" width="48" height="48" style="border-radius:50%;">
+            <div>
+                <h2 id="modalTitle" style="margin:0;"></h2>
+                <p id="modalSymbol" style="margin:0; color:#888; font-weight:500;"></p>
+            </div>
         </div>
         
-        <canvas id="chart" height="380"></canvas>
+        <p id="modalPrice" style="font-size: 32px; margin: 8px 0 20px 0; font-weight:700;"></p>
+        
+        <div id="modalChanges" style="display:flex; gap:15px; margin-bottom:25px;"></div>
+        
+        <div style="margin:20px 0 15px 0; font-weight:500;">График цены</div>
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
-// Переменные
 let allCoins = [];
 let filteredCoins = [];
 let favorites = JSON.parse(localStorage.getItem("cryptoFavorites")) || [];
-let currentPage = 1;
-const perPage = 50;
 let chartInstance = null;
 let currentCoin = null;
 let currentDays = 7;
 
-// Загрузка данных
 async function loadCrypto() {
     try {
         const res = await fetch(
@@ -204,7 +217,6 @@ async function loadCrypto() {
         renderGrid();
     } catch(e) {
         console.error(e);
-        alert("Ошибка загрузки данных CoinGecko");
     }
 }
 
@@ -212,18 +224,12 @@ function renderGrid() {
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
 
-    const start = (currentPage - 1) * perPage;
-    const end = start + perPage;
-    const coinsToShow = filteredCoins.slice(start, end);
-
-    coinsToShow.forEach(coin => {
+    filteredCoins.slice(0, 100).forEach(coin => {
         const change24h = coin.price_change_percentage_24h || 0;
         const isFav = favorites.includes(coin.id);
 
         const card = document.createElement("div");
         card.className = "card";
-        
-        const sparkData = coin.sparkline_in_7d?.price || [];
         
         card.innerHTML = `
             <div class="star">${isFav ? '⭐' : '☆'}</div>
@@ -234,7 +240,7 @@ function renderGrid() {
                     <small>${coin.name}</small>
                 </div>
             </div>
-            <div class="price">$${coin.current_price.toLocaleString()}</div>
+            <div class="price">$${coin.current_price.toLocaleString('ru-RU')}</div>
             <div class="change ${change24h >= 0 ? 'up' : 'down'}">
                 ${change24h.toFixed(2)}% (24ч)
             </div>
@@ -242,7 +248,7 @@ function renderGrid() {
         `;
 
         card.onclick = (e) => {
-            if (!e.target.classList.contains('star')) openModal(coin);
+            if (!e.target.closest('.star')) openModal(coin);
         };
 
         card.querySelector('.star').onclick = (e) => {
@@ -252,15 +258,15 @@ function renderGrid() {
 
         grid.appendChild(card);
 
-        // Рисуем sparkline
+        // Sparkline
         setTimeout(() => {
             const canvas = card.querySelector('.sparkline');
-            if (canvas && sparkData.length) drawSparkline(canvas, sparkData);
-        }, 50);
+            const sparkData = coin.sparkline_in_7d?.price || [];
+            if (canvas && sparkData.length > 0) drawSparkline(canvas, sparkData);
+        }, 100);
     });
 }
 
-// Простой sparkline
 function drawSparkline(canvas, data) {
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
@@ -275,7 +281,7 @@ function drawSparkline(canvas, data) {
 
     for (let i = 0; i < data.length; i++) {
         const x = (i / (data.length - 1)) * w;
-        const y = h - ((data[i] - min) / range) * h;
+        const y = h - ((data[i] - min) / range) * (h * 0.9);
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
@@ -285,7 +291,6 @@ function drawSparkline(canvas, data) {
     ctx.stroke();
 }
 
-// Избранное
 function toggleFavorite(id) {
     if (favorites.includes(id)) {
         favorites = favorites.filter(x => x !== id);
@@ -296,47 +301,62 @@ function toggleFavorite(id) {
     renderGrid();
 }
 
-// Модальное окно
 async function openModal(coin) {
     currentCoin = coin;
-    document.getElementById("modal").style.display = "flex";
-    document.getElementById("modalTitle").textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
+    const modal = document.getElementById("modal");
+    modal.style.display = "flex";
+
+    document.getElementById("modalImage").src = coin.image;
+    document.getElementById("modalTitle").textContent = coin.name;
+    document.getElementById("modalSymbol").textContent = coin.symbol.toUpperCase();
+    
+    const change24h = coin.price_change_percentage_24h || 0;
     document.getElementById("modalPrice").innerHTML = `
-        $${coin.current_price.toLocaleString()} 
-        <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">
-            (${coin.price_change_percentage_24h?.toFixed(2)}%)
+        $${coin.current_price.toLocaleString('ru-RU')} 
+        <span class="${change24h >= 0 ? 'up' : 'down'}" style="font-size:22px;">
+            (${change24h.toFixed(2)}%)
         </span>
     `;
+
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
 
     await loadChart(coin.id);
 }
 
 async function loadChart(coinId) {
-    if (chartInstance) chartInstance.destroy();
-    
     try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${currentDays}&interval=daily`);
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${currentDays}`);
         const data = await res.json();
         
-        const prices = data.prices.map(p => p[1]);
+        const ctx = document.getElementById("chart");
         
-        chartInstance = new Chart(document.getElementById("chart"), {
+        chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU')),
                 datasets: [{
-                    label: 'Цена USD',
-                    data: prices,
+                    label: 'Цена (USD)',
+                    data: data.prices.map(p => p[1]),
                     borderColor: '#00ff9d',
-                    tension: 0.4,
                     borderWidth: 3,
-                    pointRadius: 0
+                    tension: 0.35,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } }
+                }
             }
         });
     } catch(e) {
@@ -353,10 +373,13 @@ function changeDays(days) {
 
 function closeModal() {
     document.getElementById("modal").style.display = "none";
-    if (chartInstance) chartInstance.destroy();
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
 }
 
-// Фильтры и поиск
+// Фильтры
 document.querySelectorAll('.filters .btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.filters .btn').forEach(b => b.classList.remove('active'));
@@ -365,20 +388,11 @@ document.querySelectorAll('.filters .btn').forEach(btn => {
         const filter = btn.dataset.filter;
 
         if (filter === 'all') filteredCoins = [...allCoins];
-        else if (filter === 'gainers') {
-            filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
-        }
-        else if (filter === 'losers') {
-            filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
-        }
-        else if (filter === 'favorites') {
-            filteredCoins = allCoins.filter(c => favorites.includes(c.id));
-        }
-        else if (filter === 'trending') {
-            filteredCoins = [...allCoins].sort((a,b) => (b.market_cap||0) - (a.market_cap||0)).slice(0, 30);
-        }
+        else if (filter === 'gainers') filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
+        else if (filter === 'losers') filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
+        else if (filter === 'favorites') filteredCoins = allCoins.filter(c => favorites.includes(c.id));
+        else if (filter === 'trending') filteredCoins = [...allCoins].slice(0, 50);
 
-        currentPage = 1;
         renderGrid();
     });
 });
@@ -389,18 +403,16 @@ document.getElementById("search").addEventListener("input", (e) => {
         c.name.toLowerCase().includes(term) || 
         c.symbol.toLowerCase().includes(term)
     );
-    currentPage = 1;
     renderGrid();
 });
 
-// Инициализация
-loadCrypto();
-setInterval(loadCrypto, 120000); // обновление каждые 2 минуты
-
-// Закрытие модалки по клику вне окна
 document.getElementById("modal").addEventListener("click", (e) => {
     if (e.target.id === "modal") closeModal();
 });
+
+// Запуск
+loadCrypto();
+setInterval(loadCrypto, 120000);
 </script>
 </body>
 </html>
