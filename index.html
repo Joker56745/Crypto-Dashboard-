@@ -60,20 +60,81 @@
         padding: 18px;
         transition: all 0.3s;
         position: relative;
+        cursor: pointer;
     }
     .card:hover { transform: translateY(-8px); }
 
     .coin-info { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
     .coin-info img { width: 42px; height: 42px; }
-    .sparkline { height: 60px; margin: 10px 0; }
     .price { font-size: 22px; font-weight: 700; }
     .change { padding: 4px 12px; border-radius: 9999px; font-size: 14px; font-weight: 600; }
     .up { color: #00ff9d; background: rgba(0,255,157,0.1); }
     .down { color: #ff4d4d; background: rgba(255,77,77,0.1); }
-    .star { position: absolute; top: 16px; right: 16px; font-size: 22px; cursor: pointer; }
+    .star { position: absolute; top: 16px; right: 16px; font-size: 22px; cursor: pointer; z-index: 10; }
 
-    .error { text-align: center; padding: 80px 20px; color: #ff4d4d; font-size: 18px; }
-    .loading { text-align: center; padding: 80px; color: #888; }
+    /* MODAL */
+    .modal {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        display: none;
+        justify-content: center;
+        align-items: flex-start;
+        z-index: 1000;
+        padding: 40px 15px;
+        overflow-y: auto;
+    }
+    .modal-box {
+        background: #0f172a;
+        width: 100%;
+        max-width: 860px;
+        border-radius: 24px;
+        padding: 30px;
+        position: relative;
+        margin: auto;
+    }
+    .close-btn {
+        position: absolute;
+        top: 20px;
+        right: 25px;
+        font-size: 42px;
+        cursor: pointer;
+        color: #888;
+        z-index: 10;
+    }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 15px;
+    }
+    .modal-header img { width: 58px; height: 58px; }
+    .modal-price { font-size: 38px; font-weight: 700; margin: 10px 0 20px 0; }
+    .timeframes {
+        display: flex;
+        background: #1e2937;
+        border-radius: 50px;
+        padding: 5px;
+        width: fit-content;
+        margin-bottom: 25px;
+    }
+    .time-btn {
+        padding: 8px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+    .time-btn.active {
+        background: #00ff9d;
+        color: black;
+        font-weight: bold;
+    }
+    .chart-container {
+        position: relative;
+        height: 460px;
+        width: 100%;
+    }
 </style>
 </head>
 <body>
@@ -93,52 +154,56 @@
 
 <div id="grid" class="grid"></div>
 
-<!-- MODAL (оставил упрощённый, чтобы не перегружать) -->
-<div class="modal" id="modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:none;justify-content:center;align-items:flex-start;z-index:1000;padding:40px 20px;overflow-y:auto;">
-    <div class="modal-box" style="background:#0f172a;width:100%;max-width:820px;border-radius:24px;padding:30px;position:relative;">
-        <span onclick="closeModal()" style="position:absolute;top:20px;right:25px;font-size:42px;cursor:pointer;color:#666;">×</span>
-        <div class="modal-header" style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-            <img id="modalImage" src="" width="56" height="56">
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="modal-box">
+        <span class="close-btn" onclick="closeModal()">×</span>
+        
+        <div class="modal-header">
+            <img id="modalImage" src="" alt="">
             <div>
-                <h2 id="modalTitle"></h2>
-                <p id="modalSymbol" style="color:#888;"></p>
+                <h2 id="modalTitle" style="margin:0;"></h2>
+                <p id="modalSymbol" style="margin:0; color:#888; font-size:18px;"></p>
             </div>
         </div>
-        <div class="modal-price" id="modalPrice" style="font-size:36px;font-weight:700;"></div>
-        <div class="chart-container" style="height:420px;margin:25px 0;position:relative;">
+
+        <div id="modalPrice" class="modal-price"></div>
+
+        <div class="timeframes" id="timeframes">
+            <div class="time-btn active" data-days="1">1D</div>
+            <div class="time-btn" data-days="7">7D</div>
+            <div class="time-btn" data-days="30">30D</div>
+            <div class="time-btn" data-days="90">90D</div>
+        </div>
+
+        <div class="chart-container">
             <canvas id="chart"></canvas>
         </div>
     </div>
 </div>
 
 <script>
-let allCoins = [];
-let filteredCoins = [];
-let favorites = JSON.parse(localStorage.getItem("cryptoFavorites")) || [];
+let allCoins = [], filteredCoins = [], favorites = JSON.parse(localStorage.getItem("cryptoFavorites")) || [];
 let chartInstance = null;
 let currentCoin = null;
+let currentDays = 1;
 
 const grid = document.getElementById("grid");
 
 async function loadCrypto() {
-    grid.innerHTML = `<div class="loading">Загрузка данных с CoinGecko...</div>`;
-
+    grid.innerHTML = `<div style="text-align:center;padding:80px;color:#888;">Загрузка...</div>`;
     try {
         const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&price_change_percentage=24h");
-        if (!res.ok) throw new Error("Rate limit или ошибка API");
-
         allCoins = await res.json();
         filteredCoins = [...allCoins];
         renderGrid();
     } catch (e) {
-        console.error(e);
-        grid.innerHTML = `<div class="error">Ошибка загрузки данных.<br>Подождите 30–60 секунд и обновите страницу (F5).</div>`;
+        grid.innerHTML = `<div style="text-align:center;padding:80px;color:#ff4d4d;">Ошибка загрузки данных.<br>Обновите страницу (F5)</div>`;
     }
 }
 
 function renderGrid() {
     grid.innerHTML = "";
-
     filteredCoins.slice(0, 100).forEach(coin => {
         const change = coin.price_change_percentage_24h || 0;
         const card = document.createElement("div");
@@ -155,7 +220,6 @@ function renderGrid() {
             <div class="price">$${coin.current_price.toLocaleString('ru-RU')}</div>
             <div class="change ${change >= 0 ? 'up' : 'down'}">${change.toFixed(2)}%</div>
         `;
-
         card.onclick = (e) => {
             if (!e.target.closest('.star')) openModal(coin);
         };
@@ -163,14 +227,12 @@ function renderGrid() {
             e.stopPropagation();
             toggleFavorite(coin.id);
         };
-
         grid.appendChild(card);
     });
 }
 
 function toggleFavorite(id) {
-    if (favorites.includes(id)) favorites = favorites.filter(x => x !== id);
-    else favorites.push(id);
+    favorites = favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites, id];
     localStorage.setItem("cryptoFavorites", JSON.stringify(favorites));
     renderGrid();
 }
@@ -178,38 +240,67 @@ function toggleFavorite(id) {
 async function openModal(coin) {
     currentCoin = coin;
     document.getElementById("modal").style.display = "flex";
+
     document.getElementById("modalImage").src = coin.image;
     document.getElementById("modalTitle").textContent = coin.name;
     document.getElementById("modalSymbol").textContent = coin.symbol.toUpperCase();
 
     const change = coin.price_change_percentage_24h || 0;
-    document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString('ru-RU')} <span class="${change >= 0 ? 'up' : 'down'}">(${change.toFixed(2)}%)</span>`;
+    document.getElementById("modalPrice").innerHTML = `
+        $${coin.current_price.toLocaleString('ru-RU')} 
+        <span class="${change >= 0 ? 'up' : 'down'}" style="font-size:26px;">(${change.toFixed(2)}%)</span>
+    `;
 
     if (chartInstance) chartInstance.destroy();
-    await loadSimpleChart(coin.id);
+    await loadChart(coin.id, currentDays);
 }
 
-async function loadSimpleChart(coinId) {
+async function loadChart(coinId, days) {
     try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7`);
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
         const data = await res.json();
-        
+
         chartInstance = new Chart(document.getElementById("chart"), {
             type: 'line',
             data: {
-                labels: data.prices.map(() => ''),
+                labels: data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU')),
                 datasets: [{
                     data: data.prices.map(p => p[1]),
                     borderColor: '#00ff9d',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    pointRadius: 0
+                    borderWidth: 3.5,
+                    tension: 0.25,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }} }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    tooltip: { mode: 'index', intersect: false },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { grid: { color: '#334155' }, ticks: { color: '#aaa' } },
+                    x: { grid: { color: '#334155' }, ticks: { color: '#aaa', maxTicksLimit: 12 } }
+                }
+            }
         });
     } catch(e) { console.error(e); }
 }
+
+// Таймфреймы
+document.getElementById("timeframes").addEventListener("click", e => {
+    if (!e.target.classList.contains("time-btn")) return;
+    document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
+    currentDays = parseInt(e.target.dataset.days);
+    if (currentCoin) {
+        if (chartInstance) chartInstance.destroy();
+        loadChart(currentCoin.id, currentDays);
+    }
+});
 
 function closeModal() {
     document.getElementById("modal").style.display = "none";
@@ -221,21 +312,21 @@ document.querySelectorAll('.filters .btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.filters .btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
-        const filter = btn.dataset.filter;
-        if (filter === 'all') filteredCoins = [...allCoins];
-        else if (filter === 'gainers') filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
-        else if (filter === 'losers') filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
-        else if (filter === 'favorites') filteredCoins = allCoins.filter(c => favorites.includes(c.id));
-        else if (filter === 'trending') filteredCoins = [...allCoins].slice(0, 50);
-
+        const f = btn.dataset.filter;
+        if (f === 'all') filteredCoins = [...allCoins];
+        else if (f === 'gainers') filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
+        else if (f === 'losers') filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
+        else if (f === 'favorites') filteredCoins = allCoins.filter(c => favorites.includes(c.id));
+        else if (f === 'trending') filteredCoins = [...allCoins].slice(0, 50);
         renderGrid();
     });
 });
 
 document.getElementById("search").addEventListener("input", e => {
     const term = e.target.value.toLowerCase();
-    filteredCoins = allCoins.filter(c => c.name.toLowerCase().includes(term) || c.symbol.toLowerCase().includes(term));
+    filteredCoins = allCoins.filter(c => 
+        c.name.toLowerCase().includes(term) || c.symbol.toLowerCase().includes(term)
+    );
     renderGrid();
 });
 
@@ -245,7 +336,7 @@ document.getElementById("modal").addEventListener("click", e => {
 
 // Запуск
 loadCrypto();
-setInterval(loadCrypto, 240000); // каждые 4 минуты
+setInterval(loadCrypto, 300000); // каждые 5 минут
 </script>
 </body>
 </html>
