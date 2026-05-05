@@ -6,13 +6,31 @@
 <title>Crypto Trading App</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+    :root {
+      --bg: #0b0f1a;
+      --card: #111827;
+      --text: white;
+      --accent: #00ff9d;
+    }
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --accent: #00b36b;
+    }
     body {
       margin: 0;
-      background: #0b0f1a;
+      background: var(--bg);
+      color: var(--text);
       font-family: system-ui, sans-serif;
-      color: white;
+      transition: background 0.4s;
     }
-    header { padding: 25px; text-align: center; }
+    header { 
+      padding: 25px; 
+      text-align: center; 
+      background: var(--card);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
     input {
       padding: 12px 16px;
       width: 280px;
@@ -22,6 +40,20 @@
       color: white;
       font-size: 16px;
     }
+    [data-theme="light"] input { background: #e2e8f0; color: black; }
+
+    .theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 12px;
+      background: var(--card);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
     .filters {
       display: flex;
       justify-content: center;
@@ -36,11 +68,13 @@
       background: #1f2937;
       transition: 0.2s;
     }
+    [data-theme="light"] .btn { background: #e2e8f0; color: black; }
     .btn.active {
-      background: #00ff9d;
+      background: var(--accent);
       color: black;
       font-weight: bold;
     }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -48,7 +82,7 @@
       padding: 20px;
     }
     .card {
-      background: #111827;
+      background: var(--card);
       border-radius: 14px;
       padding: 14px;
       cursor: pointer;
@@ -79,18 +113,18 @@
       z-index: 1000;
     }
     .modal-box {
-      background: #111827;
-      padding: 20px;
+      background: var(--card);
+      padding: 25px;
       border-radius: 16px;
       width: 95%;
-      max-width: 650px;
+      max-width: 680px;
       position: relative;
     }
     .close-btn {
       position: absolute;
       top: 15px;
       right: 20px;
-      font-size: 28px;
+      font-size: 32px;
       cursor: pointer;
       color: #aaa;
     }
@@ -101,12 +135,14 @@
     }
     .loader {
       text-align: center;
-      padding: 40px;
+      padding: 50px 20px;
       font-size: 18px;
     }
 </style>
 </head>
-<body>
+<body data-theme="dark">
+
+<button class="theme-toggle" onclick="toggleTheme()">☀️</button>
 
 <header>
   <h1>Crypto Trading</h1>
@@ -128,7 +164,9 @@
     <span class="close-btn" onclick="closeModal()">×</span>
     
     <h2 id="modalTitle"></h2>
-    <p id="modalPrice" style="font-size: 28px; margin: 8px 0;"></p>
+    <p id="modalPrice" style="font-size: 28px; margin: 8px 0 15px;"></p>
+    
+    <div id="modalStats" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 15px 0; font-size: 15px;"></div>
     
     <div class="timeframes">
       <div class="btn active" data-days="1" onclick="changeDays(1)">1D</div>
@@ -136,8 +174,8 @@
       <div class="btn" data-days="30" onclick="changeDays(30)">30D</div>
     </div>
     
-    <div id="chartLoader" class="loader" style="display:none;">Загрузка графика...</div>
-    <canvas id="chart" height="320"></canvas>
+    <div id="chartLoader" class="loader">Загрузка графика...</div>
+    <canvas id="chart" height="340"></canvas>
   </div>
 </div>
 
@@ -166,7 +204,6 @@ function render() {
 
     const card = document.createElement("div");
     card.className = "card";
-    card.style.position = "relative";
 
     card.innerHTML = `
       <div class="star">${isFav ? "⭐" : "☆"}</div>
@@ -191,11 +228,9 @@ function render() {
 }
 
 function toggleFav(id) {
-  if (favorites.includes(id)) {
-    favorites = favorites.filter(x => x !== id);
-  } else {
-    favorites.push(id);
-  }
+  if (favorites.includes(id)) favorites = favorites.filter(x => x !== id);
+  else favorites.push(id);
+  
   localStorage.setItem("fav", JSON.stringify(favorites));
   render();
 }
@@ -218,7 +253,6 @@ function sortBy(type) {
   render();
 }
 
-// Search
 document.getElementById("search").addEventListener("input", e => {
   const v = e.target.value.toLowerCase();
   filtered = coins.filter(c => 
@@ -230,15 +264,28 @@ document.getElementById("search").addEventListener("input", e => {
 async function openChart(coin) {
   currentCoin = coin;
   document.getElementById("modal").style.display = "flex";
-  document.getElementById("modalTitle").textContent = coin.name;
-  document.getElementById("modalPrice").textContent = `$${coin.current_price.toLocaleString()}`;
   
+  document.getElementById("modalTitle").textContent = coin.name;
+  document.getElementById("modalPrice").innerHTML = `
+    $${coin.current_price.toLocaleString()} 
+    <span class="${coin.price_change_percentage_24h >= 0 ? 'up' : 'down'}">
+      (${coin.price_change_percentage_24h?.toFixed(2)}%)
+    </span>
+  `;
+
+  document.getElementById("modalStats").innerHTML = `
+    <div><strong>Market Cap</strong><br>$${coin.market_cap?.toLocaleString() || '—'}</div>
+    <div><strong>Volume 24h</strong><br>$${coin.total_volume?.toLocaleString() || '—'}</div>
+    <div><strong>ATH</strong><br>$${coin.ath?.toLocaleString() || '—'}</div>
+    <div><strong>24h Low / High</strong><br>$${coin.low_24h} — $${coin.high_24h}</div>
+  `;
+
   await loadChart();
 }
 
 async function loadChart() {
-  const loader = document.getElementById("chartLoader");
-  loader.style.display = "block";
+  document.getElementById("chartLoader").style.display = "block";
+  if (chartInstance) chartInstance.destroy();
 
   try {
     const res = await fetch(
@@ -250,17 +297,14 @@ async function loadChart() {
     const isPositive = prices[prices.length-1] > prices[0];
     const lineColor = isPositive ? '#00ff9d' : '#ff4d4d';
 
-    const ctx = document.getElementById("chart");
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
+    chartInstance = new Chart(document.getElementById("chart"), {
       type: 'line',
       data: {
         labels: data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU')),
         datasets: [{
           data: prices,
           borderColor: lineColor,
-          backgroundColor: isPositive ? 'rgba(0, 255, 157, 0.1)' : 'rgba(255, 77, 77, 0.1)',
+          backgroundColor: isPositive ? 'rgba(0,255,157,0.1)' : 'rgba(255,77,77,0.1)',
           tension: 0.3,
           borderWidth: 2.5
         }]
@@ -277,7 +321,7 @@ async function loadChart() {
   } catch(e) {
     console.error(e);
   } finally {
-    loader.style.display = "none";
+    document.getElementById("chartLoader").style.display = "none";
   }
 }
 
@@ -297,13 +341,22 @@ function closeModal() {
   }
 }
 
-// Close on background click
 document.getElementById("modal").addEventListener("click", (e) => {
   if (e.target.id === "modal") closeModal();
 });
 
+function toggleTheme() {
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  document.body.setAttribute("data-theme", isDark ? "light" : "dark");
+  localStorage.setItem("theme", isDark ? "light" : "dark");
+}
+
+if (localStorage.getItem("theme") === "light") {
+  document.body.setAttribute("data-theme", "light");
+}
+
 loadCrypto();
-setInterval(loadCrypto, 90000); // 1.5 минуты
+setInterval(loadCrypto, 90000);
 </script>
 </body>
 </html>
