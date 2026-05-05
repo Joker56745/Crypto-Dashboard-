@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Dashboard</title>
+
+<style>
+body {
+  margin: 0;
+  background: #0b0f1a;
+  font-family: system-ui;
+  color: white;
+}
+
+/* HEADER */
+header {
+  padding: 20px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+/* CARD */
+.card {
+  background: #111827;
+  border-radius: 16px;
+  padding: 15px;
+  transition: 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+}
+
+/* NAME */
+.name {
+  font-weight: bold;
+}
+
+/* PRICE */
+.price {
+  font-size: 18px;
+  margin: 5px 0;
+}
+
+/* CHANGE */
+.change {
+  font-weight: bold;
+}
+
+/* BAR */
+.bar {
+  height: 6px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+/* POSITIVE */
+.up {
+  color: #00ff9d;
+}
+
+/* NEGATIVE */
+.down {
+  color: #ff4d4d;
+}
+</style>
+</head>
+
+<body>
+
+<header>Crypto Dashboard</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+
+async function loadCrypto(){
+
+  const res = await fetch(
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1"
+  );
+
+  const data = await res.json();
+  const grid = document.getElementById("grid");
+
+  grid.innerHTML = "";
+
+  data.forEach(coin => {
+
+    const change = coin.price_change_percentage_24h;
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const color = change >= 0 ? "#00ff9d" : "#ff4d4d";
+
+    card.innerHTML = `
+      <div class="name">${coin.symbol.toUpperCase()}</div>
+      <div class="price">$${coin.current_price}</div>
+      <div class="change ${change >= 0 ? "up" : "down"}">
+        ${change.toFixed(2)}%
+      </div>
+      <div class="bar" style="background:${color}; width:${Math.min(Math.abs(change)*5,100)}%"></div>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+loadCrypto();
+setInterval(loadCrypto, 60000);
+
+</script>
+
+</body>
+</html>
