@@ -9,85 +9,175 @@
 
 <style>
     :root { --bg: #0a0e17; --card: #111827; --accent: #00ff9d; }
-    body { margin:0; background:var(--bg); color:#e0e0e0; font-family:system-ui,sans-serif; }
-    
-    header { background:#0f172a; padding:25px 30px; text-align:center; border-bottom:1px solid #1e2937; }
-    .logo { font-size:32px; font-weight:800; color:#00ff9d; margin-bottom:12px; }
-    input { padding:14px 20px; width:100%; max-width:420px; border-radius:9999px; border:none; background:#1e2937; color:white; }
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: #e0e0e0;
+        font-family: system-ui, sans-serif;
+    }
+    header {
+        background: #0f172a;
+        padding: 25px 30px;
+        text-align: center;
+        border-bottom: 1px solid #1e2937;
+    }
+    .logo {
+        font-size: 32px;
+        font-weight: 800;
+        color: #00ff9d;
+        margin-bottom: 15px;
+    }
+    .search-container {
+        display: flex;
+        justify-content: center;
+    }
+    input {
+        padding: 14px 20px;
+        width: 100%;
+        max-width: 420px;
+        border-radius: 9999px;
+        border: none;
+        background: #1e2937;
+        color: white;
+        font-size: 16px;
+    }
+    .filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 15px 30px;
+        background: #0f172a;
+    }
+    .btn {
+        padding: 9px 20px;
+        border-radius: 9999px;
+        cursor: pointer;
+        background: #1e2937;
+    }
+    .btn.active, .btn:hover { background: var(--accent); color: black; }
 
-    .controls { display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; padding:15px 30px; background:#0f172a; }
-    .btn, .view-btn { padding:9px 20px; border-radius:9999px; cursor:pointer; background:#1e2937; }
-    .btn.active, .btn:hover, .view-btn.active { background:var(--accent); color:black; }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+        padding: 25px;
+    }
+    .card {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 18px;
+        transition: all 0.3s;
+        position: relative;
+        cursor: pointer;
+    }
+    .card:hover { transform: translateY(-8px); }
 
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; padding:25px; }
-    .card { background:var(--card); border-radius:20px; padding:18px; position:relative; cursor:pointer; transition:0.3s; }
-    .card:hover { transform:translateY(-8px); }
+    .coin-info { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .coin-info img { width: 42px; height: 42px; }
+    .price { font-size: 22px; font-weight: 700; }
+    .change { padding: 4px 12px; border-radius: 9999px; font-size: 14px; font-weight: 600; }
+    .up { color: #00ff9d; background: rgba(0,255,157,0.1); }
+    .down { color: #ff4d4d; background: rgba(255,77,77,0.1); }
+    .star { position: absolute; top: 16px; right: 16px; font-size: 22px; cursor: pointer; z-index: 10; }
 
-    .coin-info { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
-    .coin-info img { width:42px; height:42px; }
-    .price { font-size:22px; font-weight:700; }
-    .change { padding:4px 12px; border-radius:9999px; font-size:14px; font-weight:600; }
-    .up { color:#00ff9d; background:rgba(0,255,157,0.1); }
-    .down { color:#ff4d4d; background:rgba(255,77,77,0.1); }
-    .star { position:absolute; top:16px; right:16px; font-size:22px; cursor:pointer; z-index:10; }
-
-    table { width:100%; border-collapse:collapse; margin:20px; background:#111827; border-radius:16px; overflow:hidden; }
-    th, td { padding:14px 12px; text-align:left; border-bottom:1px solid #334155; }
-    th { cursor:pointer; }
-
-    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; justify-content:center; align-items:flex-start; z-index:1000; padding:40px 15px; overflow-y:auto; }
-    .modal-box { background:#0f172a; width:100%; max-width:860px; border-radius:24px; padding:30px; position:relative; }
-    .close-btn { position:absolute; top:20px; right:25px; font-size:42px; cursor:pointer; color:#888; }
-    .modal-header { display:flex; align-items:center; gap:16px; margin-bottom:15px; }
-    .modal-header img { width:58px; height:58px; }
-    .modal-price { font-size:38px; font-weight:700; margin:10px 0 20px 0; }
-    .timeframes { display:flex; background:#1e2937; border-radius:50px; padding:5px; width:fit-content; margin-bottom:25px; }
-    .time-btn { padding:8px 20px; border-radius:50px; cursor:pointer; }
-    .time-btn.active { background:#00ff9d; color:black; font-weight:bold; }
-    .chart-container { height:460px; position:relative; margin:20px 0; }
+    /* Modal */
+    .modal {
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        display: none;
+        justify-content: center;
+        align-items: flex-start;
+        z-index: 1000;
+        padding: 40px 15px;
+        overflow-y: auto;
+    }
+    .modal-box {
+        background: #0f172a;
+        width: 100%;
+        max-width: 860px;
+        border-radius: 24px;
+        padding: 30px;
+        position: relative;
+    }
+    .close-btn {
+        position: absolute;
+        top: 20px; right: 25px;
+        font-size: 42px;
+        cursor: pointer;
+        color: #888;
+    }
+    .modal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
+    .modal-header img { width: 58px; height: 58px; }
+    .modal-price { font-size: 38px; font-weight: 700; margin: 10px 0 20px 0; }
+    .timeframes {
+        display: flex;
+        background: #1e2937;
+        border-radius: 50px;
+        padding: 5px;
+        width: fit-content;
+        margin-bottom: 25px;
+    }
+    .time-btn {
+        padding: 8px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+    .time-btn.active {
+        background: #00ff9d;
+        color: black;
+        font-weight: bold;
+    }
+    .chart-container {
+        position: relative;
+        height: 460px;
+        width: 100%;
+    }
 </style>
 </head>
 <body>
 
 <header>
     <div class="logo">CryptoPulse</div>
-    <input id="search" placeholder="Поиск монеты...">
+    <div class="search-container">
+        <input id="search" placeholder="Поиск монеты...">
+    </div>
 </header>
 
-<div class="controls">
-    <div class="view-toggle">
-        <div class="view-btn active" id="view-cards">Карточки</div>
-        <div class="view-btn" id="view-table">Таблица</div>
-    </div>
+<div class="filters">
     <div class="btn active" data-filter="all">Все</div>
     <div class="btn" data-filter="gainers">Растут</div>
     <div class="btn" data-filter="losers">Падают</div>
+    <div class="btn" data-filter="trending">🔥 Trending</div>
     <div class="btn" data-filter="favorites">⭐ Избранное</div>
 </div>
 
 <div id="grid" class="grid"></div>
-<div id="table-view" style="display:none;"></div>
 
-<!-- Modal -->
+<!-- MODAL -->
 <div class="modal" id="modal">
     <div class="modal-box">
         <span class="close-btn" onclick="closeModal()">×</span>
+        
         <div class="modal-header">
             <img id="modalImage" src="" alt="">
             <div>
-                <h2 id="modalTitle"></h2>
-                <p id="modalSymbol" style="margin:0;color:#888;"></p>
+                <h2 id="modalTitle" style="margin:0;"></h2>
+                <p id="modalSymbol" style="margin:0; color:#888; font-size:18px;"></p>
             </div>
         </div>
+
         <div id="modalPrice" class="modal-price"></div>
-        
+
         <div class="timeframes" id="timeframes">
             <div class="time-btn active" data-days="1">1D</div>
             <div class="time-btn" data-days="7">7D</div>
             <div class="time-btn" data-days="30">30D</div>
             <div class="time-btn" data-days="90">90D</div>
         </div>
-        
+
         <div class="chart-container">
             <canvas id="chart"></canvas>
         </div>
@@ -95,100 +185,76 @@
 </div>
 
 <script>
-let allCoins = [], filteredCoins = [], favorites = JSON.parse(localStorage.getItem("fav")) || [];
+let allCoins = [], filteredCoins = [], favorites = JSON.parse(localStorage.getItem("cryptoFavorites")) || [];
 let chartInstance = null;
 let currentCoin = null;
 let currentDays = 1;
-let currentView = 'cards';
+
+const grid = document.getElementById("grid");
 
 async function loadCrypto() {
+    grid.innerHTML = `<div style="text-align:center;padding:80px;color:#888;">Загрузка данных...</div>`;
     try {
-        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&price_change_percentage=1h,24h,7d");
+        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&price_change_percentage=24h");
         allCoins = await res.json();
         filteredCoins = [...allCoins];
-        renderCurrentView();
-    } catch(e) { console.error(e); }
+        renderGrid();
+    } catch (e) {
+        grid.innerHTML = `<div style="text-align:center;padding:80px;color:#ff4d4d;">Ошибка загрузки.<br>Обновите страницу (F5)</div>`;
+    }
 }
 
-function renderCurrentView() {
-    if (currentView === 'cards') renderCards();
-    else renderTable();
-}
-
-function renderCards() {
-    const grid = document.getElementById("grid");
-    grid.style.display = "grid";
-    document.getElementById("table-view").style.display = "none";
+function renderGrid() {
     grid.innerHTML = "";
-
     filteredCoins.slice(0, 100).forEach(coin => {
-        const ch = coin.price_change_percentage_24h || 0;
+        const change = coin.price_change_percentage_24h || 0;
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
             <div class="star">${favorites.includes(coin.id) ? '⭐' : '☆'}</div>
             <div class="coin-info">
                 <img src="${coin.image}">
-                <div><strong>${coin.symbol.toUpperCase()}</strong><br><small>${coin.name}</small></div>
+                <div>
+                    <strong>${coin.symbol.toUpperCase()}</strong><br>
+                    <small>${coin.name}</small>
+                </div>
             </div>
             <div class="price">$${coin.current_price.toLocaleString('ru-RU')}</div>
-            <div class="change ${ch >= 0 ? 'up' : 'down'}">${ch.toFixed(2)}%</div>
+            <div class="change ${change >= 0 ? 'up' : 'down'}">${change.toFixed(2)}%</div>
         `;
         card.onclick = (e) => { if (!e.target.closest('.star')) openModal(coin); };
-        card.querySelector('.star').onclick = (e) => { e.stopPropagation(); toggleFav(coin.id); };
+        card.querySelector('.star').onclick = (e) => { e.stopPropagation(); toggleFavorite(coin.id); };
         grid.appendChild(card);
     });
 }
 
-function renderTable() {
-    const container = document.getElementById("table-view");
-    container.style.display = "block";
-    document.getElementById("grid").style.display = "none";
-
-    let html = `<table><thead><tr><th>Монета</th><th>Цена</th><th>1h</th><th>24h</th><th>7d</th></tr></thead><tbody>`;
-    filteredCoins.slice(0, 100).forEach(coin => {
-        html += `<tr onclick="openModalById('${coin.id}')">
-            <td><img src="${coin.image}" width="24" style="vertical-align:middle"> ${coin.symbol.toUpperCase()}</td>
-            <td>$${coin.current_price.toLocaleString('ru-RU')}</td>
-            <td class="${(coin.price_change_percentage_1h_in_currency||0)>=0?'up':'down'}">${(coin.price_change_percentage_1h_in_currency||0).toFixed(1)}%</td>
-            <td class="${(coin.price_change_percentage_24h||0)>=0?'up':'down'}">${(coin.price_change_percentage_24h||0).toFixed(2)}%</td>
-            <td class="${(coin.price_change_percentage_7d_in_currency||0)>=0?'up':'down'}">${(coin.price_change_percentage_7d_in_currency||0).toFixed(2)}%</td>
-        </tr>`;
-    });
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-}
-
-function toggleFav(id) {
-    if (favorites.includes(id)) favorites = favorites.filter(x => x !== id);
-    else favorites.push(id);
-    localStorage.setItem("fav", JSON.stringify(favorites));
-    renderCurrentView();
+function toggleFavorite(id) {
+    favorites = favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites, id];
+    localStorage.setItem("cryptoFavorites", JSON.stringify(favorites));
+    renderGrid();
 }
 
 async function openModal(coin) {
     currentCoin = coin;
     document.getElementById("modal").style.display = "flex";
-    
+
     document.getElementById("modalImage").src = coin.image;
     document.getElementById("modalTitle").textContent = coin.name;
     document.getElementById("modalSymbol").textContent = coin.symbol.toUpperCase();
 
     const change = coin.price_change_percentage_24h || 0;
-    document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString('ru-RU')} <span class="${change >= 0 ? 'up' : 'down'}">(${change.toFixed(2)}%)</span>`;
+    document.getElementById("modalPrice").innerHTML = `
+        $${coin.current_price.toLocaleString('ru-RU')} 
+        <span class="${change >= 0 ? 'up' : 'down'}" style="font-size:26px;">(${change.toFixed(2)}%)</span>
+    `;
 
     if (chartInstance) chartInstance.destroy();
-    await loadChart(coin.id);
+    await loadChart(coin.id, currentDays);
 }
 
-async function openModalById(id) {
-    const coin = allCoins.find(c => c.id === id);
-    if (coin) openModal(coin);
-}
-
-async function loadChart(coinId) {
+async function loadChart(coinId, days) {
     try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${currentDays}`);
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
         const data = await res.json();
 
         if (chartInstance) chartInstance.destroy();
@@ -202,74 +268,80 @@ async function loadChart(coinId) {
                     borderColor: '#00ff9d',
                     borderWidth: 3.5,
                     tension: 0.25,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: { ticks: { callback: v => '$' + Number(v).toLocaleString('ru-RU'), color: '#aaa' }, grid: { color: '#334155' }},
-                    x: { ticks: { color: '#aaa', maxTicksLimit: 12 }, grid: { color: '#334155' }}
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e2937',
+                        titleColor: '#aaa',
+                        bodyColor: '#00ff9d',
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => '$' + ctx.parsed.y.toLocaleString('ru-RU')
+                        }
+                    }
                 },
-                plugins: { legend: { display: false }}
+                scales: {
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: {
+                            color: '#aaa',
+                            callback: value => '$' + value.toLocaleString('ru-RU')
+                        }
+                    },
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#aaa', maxTicksLimit: 10 }
+                    }
+                }
             }
         });
     } catch(e) { console.error(e); }
 }
 
 // Таймфреймы
-document.getElementById("timeframes").addEventListener("click", (e) => {
+document.getElementById("timeframes").addEventListener("click", e => {
     if (!e.target.classList.contains("time-btn")) return;
-    document.querySelectorAll(".time-btn").forEach(b => b.classList.remove("active"));
-    e.target.classList.add("active");
+    document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
     currentDays = parseInt(e.target.dataset.days);
-    if (currentCoin) loadChart(currentCoin.id);
+    if (currentCoin) loadChart(currentCoin.id, currentDays);
 });
-
-// Фильтры
-document.querySelectorAll('.controls .btn[data-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.controls .btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const filter = btn.dataset.filter;
-        if (filter === 'all') filteredCoins = [...allCoins];
-        else if (filter === 'gainers') filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
-        else if (filter === 'losers') filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
-        else if (filter === 'favorites') filteredCoins = allCoins.filter(c => favorites.includes(c.id));
-
-        renderCurrentView();
-    });
-});
-
-// Поиск
-document.getElementById("search").addEventListener("input", e => {
-    const term = e.target.value.toLowerCase();
-    filteredCoins = allCoins.filter(c => 
-        c.name.toLowerCase().includes(term) || c.symbol.toLowerCase().includes(term)
-    );
-    renderCurrentView();
-});
-
-// Переключение вида
-document.getElementById("view-cards").onclick = () => {
-    currentView = 'cards';
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById("view-cards").classList.add('active');
-    renderCurrentView();
-};
-document.getElementById("view-table").onclick = () => {
-    currentView = 'table';
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById("view-table").classList.add('active');
-    renderCurrentView();
-};
 
 function closeModal() {
     document.getElementById("modal").style.display = "none";
     if (chartInstance) chartInstance.destroy();
 }
+
+// Фильтры
+document.querySelectorAll('.filters .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filters .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const f = btn.dataset.filter;
+        if (f === 'all') filteredCoins = [...allCoins];
+        else if (f === 'gainers') filteredCoins = [...allCoins].sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
+        else if (f === 'losers') filteredCoins = [...allCoins].sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
+        else if (f === 'favorites') filteredCoins = allCoins.filter(c => favorites.includes(c.id));
+        else if (f === 'trending') filteredCoins = [...allCoins].slice(0, 50);
+        renderGrid();
+    });
+});
+
+document.getElementById("search").addEventListener("input", e => {
+    const term = e.target.value.toLowerCase();
+    filteredCoins = allCoins.filter(c => 
+        c.name.toLowerCase().includes(term) || c.symbol.toLowerCase().includes(term)
+    );
+    renderGrid();
+});
 
 document.getElementById("modal").addEventListener("click", e => {
     if (e.target.id === "modal") closeModal();
@@ -277,7 +349,7 @@ document.getElementById("modal").addEventListener("click", e => {
 
 // Запуск
 loadCrypto();
-setInterval(loadCrypto, 240000);
+setInterval(loadCrypto, 300000);
 </script>
 </body>
 </html>
