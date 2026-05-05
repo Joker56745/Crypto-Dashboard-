@@ -12,7 +12,7 @@
       font-family: system-ui, sans-serif;
       color: white;
     }
-    header { padding: 20px; text-align: center; }
+    header { padding: 25px; text-align: center; }
     input {
       padding: 12px 16px;
       width: 280px;
@@ -20,16 +20,17 @@
       border: none;
       background: #1f2937;
       color: white;
+      font-size: 16px;
     }
     .filters {
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin: 15px;
+      margin: 20px;
       flex-wrap: wrap;
     }
     .btn {
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 8px;
       cursor: pointer;
       background: #1f2937;
@@ -43,24 +44,25 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 15px;
+      gap: 16px;
       padding: 20px;
     }
     .card {
       background: #111827;
       border-radius: 14px;
-      padding: 12px;
+      padding: 14px;
       cursor: pointer;
       transition: 0.2s;
+      position: relative;
     }
     .card:hover { transform: translateY(-6px); }
-    .coin { display: flex; align-items: center; gap: 8px; }
-    .coin img { width: 28px; }
+    .coin { display: flex; align-items: center; gap: 10px; }
+    .coin img { width: 32px; }
     .star {
       position: absolute;
       right: 12px;
       top: 12px;
-      font-size: 18px;
+      font-size: 20px;
       cursor: pointer;
     }
     .up { color: #00ff9d; }
@@ -70,7 +72,7 @@
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.92);
       display: none;
       justify-content: center;
       align-items: center;
@@ -81,12 +83,26 @@
       padding: 20px;
       border-radius: 16px;
       width: 95%;
-      max-width: 620px;
+      max-width: 650px;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 28px;
+      cursor: pointer;
+      color: #aaa;
     }
     .timeframes {
       display: flex;
       gap: 8px;
-      margin-bottom: 15px;
+      margin: 15px 0;
+    }
+    .loader {
+      text-align: center;
+      padding: 40px;
+      font-size: 18px;
     }
 </style>
 </head>
@@ -109,12 +125,19 @@
 <!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-box" onclick="event.stopImmediatePropagation()">
+    <span class="close-btn" onclick="closeModal()">×</span>
+    
+    <h2 id="modalTitle"></h2>
+    <p id="modalPrice" style="font-size: 28px; margin: 8px 0;"></p>
+    
     <div class="timeframes">
       <div class="btn active" data-days="1" onclick="changeDays(1)">1D</div>
       <div class="btn" data-days="7" onclick="changeDays(7)">7D</div>
       <div class="btn" data-days="30" onclick="changeDays(30)">30D</div>
     </div>
-    <canvas id="chart" height="280"></canvas>
+    
+    <div id="chartLoader" class="loader" style="display:none;">Загрузка графика...</div>
+    <canvas id="chart" height="320"></canvas>
   </div>
 </div>
 
@@ -124,19 +147,15 @@ let chartInstance = null;
 let currentCoin = null;
 let currentDays = 7;
 
-/* ==================== LOAD DATA ==================== */
 async function loadCrypto() {
   try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=100&sparkline=false");
+    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=100");
     coins = await res.json();
     filtered = coins;
     render();
-  } catch(e) {
-    console.error(e);
-  }
+  } catch(e) { console.error(e); }
 }
 
-/* ==================== RENDER ==================== */
 function render() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
@@ -171,7 +190,6 @@ function render() {
   });
 }
 
-/* ==================== FAVORITES & SORT ==================== */
 function toggleFav(id) {
   if (favorites.includes(id)) {
     favorites = favorites.filter(x => x !== id);
@@ -200,86 +218,92 @@ function sortBy(type) {
   render();
 }
 
-/* ==================== SEARCH ==================== */
+// Search
 document.getElementById("search").addEventListener("input", e => {
   const v = e.target.value.toLowerCase();
   filtered = coins.filter(c => 
-    c.name.toLowerCase().includes(v) || 
-    c.symbol.toLowerCase().includes(v)
+    c.name.toLowerCase().includes(v) || c.symbol.toLowerCase().includes(v)
   );
   render();
 });
 
-/* ==================== CHART ==================== */
 async function openChart(coin) {
   currentCoin = coin;
   document.getElementById("modal").style.display = "flex";
+  document.getElementById("modalTitle").textContent = coin.name;
+  document.getElementById("modalPrice").textContent = `$${coin.current_price.toLocaleString()}`;
+  
   await loadChart();
 }
 
 async function loadChart() {
-  if (!currentCoin) return;
+  const loader = document.getElementById("chartLoader");
+  loader.style.display = "block";
 
   try {
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${currentCoin.id}/market_chart?vs_currency=usd&days=${currentDays}&interval=${currentDays === 1 ? 'hourly' : 'daily'}`
+      `https://api.coingecko.com/api/v3/coins/${currentCoin.id}/market_chart?vs_currency=usd&days=${currentDays}`
     );
     const data = await res.json();
 
     const prices = data.prices.map(p => p[1]);
-    const labels = data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU'));
+    const isPositive = prices[prices.length-1] > prices[0];
+    const lineColor = isPositive ? '#00ff9d' : '#ff4d4d';
 
     const ctx = document.getElementById("chart");
-
     if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
+        labels: data.prices.map(p => new Date(p[0]).toLocaleDateString('ru-RU')),
         datasets: [{
-          label: currentCoin.name,
           data: prices,
-          borderColor: '#00ff9d',
-          backgroundColor: 'rgba(0, 255, 157, 0.1)',
+          borderColor: lineColor,
+          backgroundColor: isPositive ? 'rgba(0, 255, 157, 0.1)' : 'rgba(255, 77, 77, 0.1)',
           tension: 0.3,
-          borderWidth: 2
+          borderWidth: 2.5
         }]
       },
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#334155' } },
-          y: { grid: { color: '#334155' } }
+          x: { grid: { color: '#334155' }, ticks: { color: '#888' } },
+          y: { grid: { color: '#334155' }, ticks: { color: '#888' } }
         }
       }
     });
   } catch(e) {
     console.error(e);
+  } finally {
+    loader.style.display = "none";
   }
 }
 
 function changeDays(days) {
   currentDays = days;
-  
-  // Активная кнопка
   document.querySelectorAll('.timeframes .btn').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.getAttribute('data-days')) === days);
   });
-
   loadChart();
 }
 
-/* Close modal only when clicking outside modal-box */
-document.getElementById("modal").addEventListener("click", (e) => {
-  if (e.target.id === "modal") {
-    document.getElementById("modal").style.display = "none";
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
   }
+}
+
+// Close on background click
+document.getElementById("modal").addEventListener("click", (e) => {
+  if (e.target.id === "modal") closeModal();
 });
 
 loadCrypto();
-setInterval(loadCrypto, 90000); // обновление каждые 1.5 минуты
+setInterval(loadCrypto, 90000); // 1.5 минуты
 </script>
 </body>
 </html>
