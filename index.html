@@ -52,8 +52,10 @@
       padding: 25px;
       border-radius: 16px;
       width: 100%;
-      max-width: 700px;
+      max-width: 720px;
       position: relative;
+      max-height: 95vh;
+      overflow-y: auto;
     }
     .close-btn {
       position: absolute;
@@ -64,7 +66,8 @@
       color: #ccc;
     }
     .timeframes { display: flex; gap: 8px; margin: 15px 0; }
-    .loader { text-align: center; padding: 60px; font-size: 18px; }
+    .loader { text-align: center; padding: 80px 20px; font-size: 18px; }
+    #chart { max-height: 420px; }
 </style>
 </head>
 <body>
@@ -87,7 +90,7 @@
   <div class="modal-box">
     <span class="close-btn" onclick="closeModal()">×</span>
     <h2 id="modalTitle"></h2>
-    <p id="modalPrice" style="font-size:28px; margin:10px 0;"></p>
+    <p id="modalPrice" style="font-size:28px; margin:10px 0 15px;"></p>
     
     <div class="timeframes">
       <div class="btn active" onclick="changeDays(1)">1D</div>
@@ -96,7 +99,7 @@
     </div>
     
     <div id="chartLoader" class="loader">Загрузка графика...</div>
-    <canvas id="chart" height="380"></canvas>
+    <canvas id="chart"></canvas>
   </div>
 </div>
 
@@ -170,10 +173,12 @@ async function openChart(coin) {
   currentCoin = coin;
   document.getElementById("modal").style.display = "flex";
   document.getElementById("modalTitle").textContent = coin.name;
-  document.getElementById("modalPrice").innerHTML = `$${coin.current_price.toLocaleString()}`;
+  document.getElementById("modalPrice").textContent = `$${coin.current_price.toLocaleString()}`;
 
-  // Небольшая задержка, чтобы модалка успела появиться
-  setTimeout(() => loadChart(), 100);
+  // Важная задержка + resize
+  setTimeout(() => {
+    loadChart();
+  }, 150);
 }
 
 async function loadChart() {
@@ -195,7 +200,8 @@ async function loadChart() {
           data: prices,
           borderColor: isPositive ? '#00ff9d' : '#ff4d4d',
           tension: 0.3,
-          borderWidth: 2.5
+          borderWidth: 2.5,
+          pointRadius: 0
         }]
       },
       options: {
